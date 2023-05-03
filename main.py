@@ -1,15 +1,16 @@
-from torch.utils.data import Dataset, DataLoader
 from typing import List
 
 import pandas as pd
 import torch
-import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from torch.utils.data import DataLoader
 
 from create_vessel_train_set import load_dataset, split_datasets, dataloader_from_df
 from encoder import add_ordinal_label, VESSEL_ID, PREV_PORT, PORT
+
+import matplotlib.pyplot as plt
 
 
 class PortPredictNeuralNetwork(nn.Module):
@@ -119,7 +120,27 @@ optimizer = optim.SGD(model.parameters(), lr=0.005)
 
 loss_function = nn.NLLLoss()
 
-for epoch in range(800):
+train_losses = []
+train_accuracies = []
+val_losses = []
+val_accuracies = []
+
+epochs = range(500)
+
+for epoch in epochs:
     curr_loss, train_accuracy, curr_val_loss, val_accuracy = train_epoch(train_dataloader, validation_dataloader)
     print(f"Epoc: {epoch}; Loss: {round(curr_loss, 5)}; Train Accuracy: {round(train_accuracy, 2)}%; "
           f"Validation Loss: {round(curr_val_loss, 5)}; Validation Accuracy: {round(val_accuracy, 2)}%")
+    train_losses.append(curr_loss)
+    train_accuracies.append(train_accuracy)
+    val_losses.append(curr_val_loss)
+    val_accuracies.append(val_accuracy)
+
+plt.figure()
+plt.plot(list(map(lambda x: x+1, epochs)), train_losses, list(map(lambda x: x+1, epochs)), val_losses)
+plt.title("Train vs. Validation Loss")
+plt.xlabel("Epoch")
+plt.ylabel("Loss")
+plt.legend(["train", "validation"])
+plt.show()
+

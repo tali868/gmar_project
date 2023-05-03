@@ -35,6 +35,8 @@ def dataloader_from_df(data: pd.DataFrame, batch_size: int):
 def load_dataset():
     with open("dataset_10_samples.json", mode="r") as f:
         dataset_10 = json.load(f)
+    with open("dataset_24_samples.json", mode="r") as f:
+        dataset_24 = json.load(f)
     dataset_df = pd.DataFrame(dataset_10)
     return dataset_df
 
