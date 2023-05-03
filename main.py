@@ -1,3 +1,4 @@
+from torch.utils.data import Dataset, DataLoader
 from typing import List
 
 import pandas as pd
@@ -35,21 +36,23 @@ class PortPredictNeuralNetwork(nn.Module):
         return out
 
 
-def train_epoch(train_dl, val_dl):
-    total_loss = 0
-    accuracy = []
-    for inputs, target in train_dl:
+def train_epoch(train_dl: DataLoader, val_dl):
+    running_loss = []
+    loss_weights = []
+    correct = 0
+    for i, (inputs, target) in enumerate(train_dl):
         # Zero your gradients for every batch!
         model.zero_grad()
 
         # Run the  forward pass, getting softmax probabilities
         output = model(inputs)
-        batch_sum = torch.sum(output.argmax(2) == target).item()
-        batch_len = inputs[0].size()[0]
-        accuracy.append(batch_sum / batch_len)
+        correct += torch.sum(output.argmax(2) == target).item()
 
         # Step 4. Compute your loss function
         loss = loss_function(output.squeeze(), target.squeeze())
+        weight = inputs[0].size()[0]
+        running_loss.append(loss.item() * weight)
+        loss_weights.append(weight)
 
         # Step 5. Do the backward pass and update the gradient
         loss.backward()
@@ -57,22 +60,22 @@ def train_epoch(train_dl, val_dl):
         # Adjust learning weights
         optimizer.step()
 
-        # Get the Python number from a 1-element Tensor by calling tensor.item()
-        total_loss += loss.item()
-
-    # val_err = run_validation(val_dl)
-    return total_loss, sum(accuracy) / len(accuracy), 0
+    val_loss, val_acc = run_validation(val_dl)
+    return sum(running_loss) / sum(loss_weights), 100 * correct / len(train_set_df), val_loss, val_acc
 
 
-def run_validation(val_df):
-    vessel_input = torch.flatten(torch.tensor(np.array(val_df[f"input_{VESSEL_ID}"]).astype(int), dtype=torch.long))
-    port_input = torch.flatten(torch.tensor(np.array(val_df[f"input_{PREV_PORT}"]).astype(int), dtype=torch.long))
-    val_target = torch.flatten(torch.tensor(np.array(val_df["output_label"]).astype(int), dtype=torch.long))
-    validation_output = model((vessel_input, port_input))
-    val_loss = loss_function(validation_output, val_target)
-    correct = torch.sum(torch.eq(val_target, validation_output.argmax(dim=1))).item()
-    val_err = correct / val_df.shape[0]
-    return val_err
+def run_validation(val_dl):
+    running_loss = []
+    loss_weights = []
+    correct = 0
+    for val_inputs, val_target in val_dl:
+        val_output = model(val_inputs)
+        val_loss = loss_function(val_output.squeeze(), val_target.squeeze())
+        weight = val_inputs[0].size()[0]
+        running_loss.append(val_loss.item() * weight)
+        loss_weights.append(weight)
+        correct += torch.sum(val_output.argmax(2) == val_target).item()
+    return sum(running_loss) / sum(loss_weights), 100 * correct / len(val_set_df)
 
 
 def get_unique(columns: List[str], data_sets: List[pd.DataFrame]):
@@ -117,8 +120,6 @@ optimizer = optim.SGD(model.parameters(), lr=0.005)
 loss_function = nn.NLLLoss()
 
 for epoch in range(800):
-    curr_loss, train_accuracy, val_accuracy = train_epoch(train_dataloader, validation_dataloader)
-    print(f"Epoc: {epoch}; Loss: {round(curr_loss, 3)}; Train Accuracy: {round(train_accuracy*100, 2)}%; "
-          f"Validation Accuracy: {round(val_accuracy*100, 2)}%")
-# for epoch, loss, accuracy in losses:
-#     print(f"Epoc: {epoch}; Loss: {round(loss, 3)}; Accuracy: {round(accuracy, 2)}")
+    curr_loss, train_accuracy, curr_val_loss, val_accuracy = train_epoch(train_dataloader, validation_dataloader)
+    print(f"Epoc: {epoch}; Loss: {round(curr_loss, 5)}; Train Accuracy: {round(train_accuracy, 2)}%; "
+          f"Validation Loss: {round(curr_val_loss, 5)}; Validation Accuracy: {round(val_accuracy, 2)}%")
