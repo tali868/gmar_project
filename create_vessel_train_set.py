@@ -37,7 +37,9 @@ def load_dataset():
         dataset_10 = json.load(f)
     with open("dataset_24_samples.json", mode="r") as f:
         dataset_24 = json.load(f)
-    dataset_df = pd.DataFrame(dataset_10)
+    with open("dataset_20_samples.json", mode="r") as f:
+        dataset_20 = json.load(f)
+    dataset_df = pd.DataFrame(dataset_10 + dataset_24 + dataset_20[:3500])
     return dataset_df
 
 

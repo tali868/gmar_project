@@ -21,7 +21,8 @@ class PortPredictNeuralNetwork(nn.Module):
 
         # These are two fully connected layers
         self.layer_1 = nn.Linear(embedding_dim * 2, hidden_dim)
-        self.layer_2 = nn.Linear(hidden_dim, output_dim)
+        # self.layer_2 = nn.Linear(hidden_dim, hidden_dim)
+        self.layer_3 = nn.Linear(hidden_dim, output_dim)
 
     def forward(self, inputs):
         # Pass input through the embedding layer
@@ -31,8 +32,9 @@ class PortPredictNeuralNetwork(nn.Module):
 
         # Pass input through the hidden layer
         out = F.relu(self.layer_1(embed))
+        # out = F.relu(self.layer_2(out))
         # Pass input through the final linear layer
-        out = self.layer_2(out)
+        out = self.layer_3(out)
         out = F.log_softmax(out, 2)
         return out
 
@@ -104,19 +106,23 @@ train_set_df = train_set_df.sample(frac=1).reset_index(drop=True)
 val_set_df = val_set_df.sample(frac=1).reset_index(drop=True)
 test_set_df = test_set_df.sample(frac=1).reset_index(drop=True)
 
-train_dataloader = dataloader_from_df(train_set_df, 16)
+# -------------------------------- #
+
+hidden_layer_size = 64
+
+emb_output_dim = 3
+learning_rate = 0.001
+batch_size = 32
+
+train_dataloader = dataloader_from_df(train_set_df, batch_size)
 validation_dataloader = dataloader_from_df(val_set_df, 100)
 
 # Initialize the model
 vessels_size = len(unique_vessels)
 ports_size = len(unique_ports)
 
-hidden_layer_size = 64  # TODO: play with this
-vessel_emb_dim = 1
-port_emb_dim = 2
-emb_output_dim = 2
 model = PortPredictNeuralNetwork(vessels_size, ports_size, emb_output_dim, hidden_layer_size, ports_size)
-optimizer = optim.SGD(model.parameters(), lr=0.005)
+optimizer = optim.SGD(model.parameters(), lr=learning_rate)
 
 loss_function = nn.NLLLoss()
 
@@ -125,22 +131,29 @@ train_accuracies = []
 val_losses = []
 val_accuracies = []
 
-epochs = range(500)
+epochs = range(600)
+
+loss_changed = False
 
 for epoch in epochs:
     curr_loss, train_accuracy, curr_val_loss, val_accuracy = train_epoch(train_dataloader, validation_dataloader)
-    print(f"Epoc: {epoch}; Loss: {round(curr_loss, 5)}; Train Accuracy: {round(train_accuracy, 2)}%; "
-          f"Validation Loss: {round(curr_val_loss, 5)}; Validation Accuracy: {round(val_accuracy, 2)}%")
+    if epoch % 10 == 0:
+        print(f"Epoch: {epoch}; Loss: {round(curr_loss, 5)}; Train Accuracy: {round(train_accuracy, 2)}%; "
+              f"Validation Loss: {round(curr_val_loss, 5)}; Validation Accuracy: {round(val_accuracy, 2)}%")
+    # if curr_val_loss < 3.7 and not loss_changed:
+    #     learning_rate = 0.005
+    #     optimizer.param_groups[0]['lr'] = 0.001
+    #     loss_changed = True
     train_losses.append(curr_loss)
     train_accuracies.append(train_accuracy)
     val_losses.append(curr_val_loss)
     val_accuracies.append(val_accuracy)
 
 plt.figure()
-plt.plot(list(map(lambda x: x+1, epochs)), train_losses, list(map(lambda x: x+1, epochs)), val_losses)
-plt.title("Train vs. Validation Loss")
+plt.plot(list(map(lambda x: x + 1, epochs)), train_losses, list(map(lambda x: x + 1, epochs)), val_losses)
+plt.title(
+    f"Train vs. Validation Loss lr={learning_rate}, em_dim={emb_output_dim}, batch_size={batch_size}\ntrainset size {len(train_set_df)}, vessels {len(unique_vessels)}, ports {len(unique_ports)}")
 plt.xlabel("Epoch")
 plt.ylabel("Loss")
 plt.legend(["train", "validation"])
 plt.show()
-
