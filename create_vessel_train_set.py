@@ -5,7 +5,7 @@ import pandas as pd
 
 
 def load_dataset():
-    with open("dataset_10_samples.json", mode="r") as f:
+    with open("data/dataset_10_samples.json", mode="r") as f:
         dataset_10 = json.load(f)
     dataset_df = pd.DataFrame(dataset_10)
     return dataset_df
