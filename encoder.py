@@ -9,7 +9,7 @@ PREV_PORT_NAME = "prev_port_name"
 PORT = "curr_port"
 PORT_NAME = "curr_port_name"
 
-train_set = [
+naive_train_set = [
     {VESSEL_ID: "5905c345f222b84c4814fcaf", PREV_PORT: "5358fc78b68ca120a07dbc9f", PREV_PORT_NAME: "Kolkata",
      PORT: "5358fc78b68ca120a07dbc79", PORT_NAME: "Colombo"},
     {VESSEL_ID: "5905c345f222b84c4814fcaf", PREV_PORT: "5358fc78b68ca120a07dbc79", PREV_PORT_NAME: "Colombo",
@@ -199,7 +199,7 @@ train_set = [
      PORT: "5358fc77b68ca120a07db680", PORT_NAME: "Puerto Barrios"},
 ]
 
-test_set = [
+naive_test_set = [
     {VESSEL_ID: "5905c345f222b84c4814fcaf", PREV_PORT: "5358fc78b68ca120a07dbc9f", PREV_PORT_NAME: "Kolkata",
      PORT: "5358fc78b68ca120a07dbc79", PORT_NAME: "Colombo"},
     {VESSEL_ID: "5905c345f222b84c4814fcaf", PREV_PORT: "5358fc78b68ca120a07dbc79", PREV_PORT_NAME: "Colombo",
@@ -243,7 +243,7 @@ def create_encoder(values_to_encode: list) -> OrdinalEncoder:
 
 
 def encode(encoder: OrdinalEncoder, values: List[str], column_name: str) -> List[Dict[str, str]]:
-    encoded_ports = []  # todo - pass a list instead of for
+    encoded_ports = []
     for value in values:
         encoded_port = encoder.transform([[value]])
         encoded_ports.append({column_name: value, f"{column_name}_ordinal": encoded_port[0]})
